@@ -1,0 +1,174 @@
+
+#include<iostream>
+#include<iomanip>
+#include<fstream>
+#include<string>
+
+using namespace std;
+
+const int MOVIES_SIZE = 20;
+
+
+struct Movie {
+    string title;
+    int yearReleased;
+    double revenue;
+};
+
+// Function prototypes
+void storeMoviesArray(ifstream& inFile, Movie topMovies[], int& count);
+void sortMoviesTitle(Movie topMovies[], const int SIZE);
+void printMoviesArray(Movie topMovies[], const int SIZE);
+int findMovieTitle(Movie topMovies[], const int SIZE, string title);
+string toLower(const string& str);
+string trim(const string& str);
+char toLowerChar(char ch);
+
+int main()
+{
+    ifstream inFile("movies.txt");
+
+    if (!inFile) {
+        cout << "Error opening file movies.txt" << endl;
+        return 1;
+    }
+
+    Movie topMovies[MOVIES_SIZE];
+    int movieCount = 0;
+    string title;
+    int index;
+    char choice;
+
+    storeMoviesArray(inFile, topMovies, movieCount);
+    sortMoviesTitle(topMovies, movieCount);
+
+    do {
+#ifdef _WIN32
+        system("CLS");
+#else
+        system("clear");
+#endif
+
+        printMoviesArray(topMovies, movieCount);
+
+        cout << "\nEnter a movie title: ";
+        getline(cin >> ws, title);
+        title = trim(title);
+
+        index = findMovieTitle(topMovies, movieCount, title);
+
+        if (index == -1) {
+            cout << "\nMovie \"" << title << "\" not found." << endl;
+        } else {
+            cout << "\nTitle: " << topMovies[index].title << endl;
+            cout << "Year Released: " << topMovies[index].yearReleased << endl;
+            cout << "Revenue: $" << fixed << setprecision(0) << topMovies[index].revenue << endl;
+        }
+
+        cout << "\nDo you want to continue? (y/n): ";
+        cin >> choice;
+
+    } while (toLowerChar(choice) == 'y');
+
+    inFile.close();
+    return 0;
+}
+
+void storeMoviesArray(ifstream& inFile, Movie topMovies[], int& count)
+{
+    string line;
+    count = 0;
+
+    while (count < MOVIES_SIZE && getline(inFile, line)) {
+        size_t firstComma = line.find(',');
+        size_t secondComma = line.find(',', firstComma + 1);
+
+        if (firstComma == string::npos || secondComma == string::npos) {
+            continue; // Skip malformed lines
+        }
+
+        topMovies[count].title = line.substr(0, firstComma);
+        topMovies[count].yearReleased = stoi(line.substr(firstComma + 1, secondComma - firstComma - 1));
+        topMovies[count].revenue = stod(line.substr(secondComma + 1));
+
+        count++;
+    }
+}
+
+void sortMoviesTitle(Movie topMovies[], const int SIZE)
+{
+    for (int i = 0; i < SIZE - 1; ++i) {
+        for (int j = 0; j < SIZE - i - 1; ++j) {
+            if (topMovies[j].title > topMovies[j + 1].title) {
+                Movie temp = topMovies[j];
+                topMovies[j] = topMovies[j + 1];
+                topMovies[j + 1] = temp;
+            }
+        }
+    }
+}
+
+void printMoviesArray(Movie topMovies[], const int SIZE)
+{
+    cout << left << setw(35) << "Movie title"
+         << setw(8) << "Year"
+         << "Revenue" << endl;
+    cout << string(60, '-') << endl;
+
+    for (int i = 0; i < SIZE; ++i) {
+        cout << left << setw(35) << topMovies[i].title
+             << setw(8) << topMovies[i].yearReleased
+             << fixed << setprecision(0) << topMovies[i].revenue << endl;
+    }
+}
+
+int findMovieTitle(Movie topMovies[], const int SIZE, string title)
+{
+    int low = 0, high = SIZE - 1;
+    string target = toLower(title);
+
+    while (low <= high) {
+        int mid = (low + high) / 2;
+        string midTitle = toLower(topMovies[mid].title);
+
+        if (midTitle == target)
+            return mid;
+        else if (midTitle < target)
+            low = mid + 1;
+        else
+            high = mid - 1;
+    }
+
+    return -1;
+}
+
+string toLower(const string& str)
+{
+    string result = "";
+    for (int i = 0; i < str.length(); ++i) {
+        result += toLowerChar(str[i]);
+    }
+    return result;
+}
+
+char toLowerChar(char ch)
+{
+    if (ch >= 'A' && ch <= 'Z')
+        return ch + ('a' - 'A');
+    return ch;
+}
+
+string trim(const string& str)
+{
+    int start = 0;
+    while (start < str.length() && (str[start] == ' ' || str[start] == '\t' || str[start] == '\n' || str[start] == '\r'))
+        ++start;
+
+    int end = str.length() - 1;
+    while (end >= 0 && (str[end] == ' ' || str[end] == '\t' || str[end] == '\n' || str[end] == '\r'))
+        --end;
+
+    if (start > end)
+        return "";
+    return str.substr(start, end - start + 1);
+}
